@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Restaurant Command Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        :root {
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #facc15;
+            --dark: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #020617);
+            color: #111;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        header h1 { margin: 0; font-size: 26px; font-weight: 700; }
+
+        .live-indicator { display: flex; align-items: center; gap: 8px; font-size: 14px; opacity: 0.9; }
+
+        .dot {
+            height: 8px; width: 8px; background-color: var(--green);
+            border-radius: 50%; display: inline-block; animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 0 30px 30px; }
+
+        .stat-card {
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+            border-radius: 14px; padding: 20px; color: white; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .container { padding: 0 30px 40px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
+
+        .table-card {
+            background: var(--card-bg); border-radius: 18px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: all 0.25s ease;
+            position: relative; overflow: hidden;
+        }
+
+        .table-card:hover { transform: translateY(-4px); }
+
+        .table-number { font-size: 22px; font-weight: 700; cursor: pointer; color: #1e293b; }
+        .table-number:hover { color: #2563eb; text-decoration: underline; }
+
+        .capacity { font-size: 14px; color: #64748b; }
+
+        .status-pill {
+            position: absolute; top: 16px; right: 16px; padding: 6px 14px;
+            border-radius: 999px; font-size: 11px; font-weight: 700; color: white;
+        }
+
+        .available { background: var(--green); }
+        .occupied { background: var(--red); }
+        .bill_requested { background: var(--yellow); color: #333; }
+
+        .icon { font-size: 36px; margin: 15px 0; }
+
+        .action-area {
+            margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .btn-reset {
+            background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569;
+            padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;
+        }
+        .btn-reset:hover { background: #e2e8f0; color: #ef4444; }
+
+        footer { text-align: center; padding: 20px; font-size: 13px; color: rgba(255,255,255,0.5); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>🍽️ Restaurant Command Center</h1>
+        <span>Live table & billing overview</span>
+    </div>
+    <div class="live-indicator">
+        <span class="dot"></span>
+        <span>Live Sync </span>
+    </div>
+</header>
+
+<div id="stats-container" class="stats">
+    <div class="stat-card">
+        <h2>{{ tables|length }}</h2>
+        <p>Total Tables</p>
+    </div>
+    <div class="stat-card">
+        <h2>{{ active_tables_count }}</h2>
+        <p>Occupied Tables</p>
+    </div>
+    <div class="stat-card">
+        <h2>Live</h2>
+        <p>Kitchen Status</p>
+    </div>
+</div>
+
+<div class="container">
+    <div id="table-grid" class="grid">
+        {% for table in tables %}
+        <div class="table-card">
+            <div class="status-pill {{ table.status }}">
+                {{ table.status|upper }}
+            </div>
+
+            <div class="table-number" onclick="location.href='/admin/restaurant/table/{{ table.id }}/change/'">
+                Table {{ table.table_number }}
+            </div>
+            <div class="capacity">Seats {{ table.capacity }}</div>
+
+            <div class="icon">
+                {% if table.status == "available" %} 🟢 
+                {% elif table.status == "occupied" %} 🔴 
+                {% else %} 🟡 {% endif %}
+            </div>
+
+            <div class="action-area">
+                {% if table.status != "available" %}
+                    <a href="/api/tables/{{ table.id }}/generate_bill/" 
+                       target="_blank" 
+                       style="text-decoration: none; color: #2563eb; font-size: 13px; font-weight: 600;">
+                       📄 View Bill
+                    </a>
+                    <button class="btn-reset" onclick="clearTable('{{ table.id }}')">Reset</button>
+                {% else %}
+                    <span style="color: #94a3b8; font-size: 12px; font-style: italic;">Available</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<footer>
+    Internal Restaurant System • Django + DRF + Live AJAX Sync
+</footer>
+
+<script>
+    // Function to clear the table via the API
+    async function clearTable(id) {
+        if (confirm("Reset Table " + id + " to Available?")) {
+            try {
+                const response = await fetch(`/api/tables/${id}/clear_table/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'), 
+                    }
+                });
+                if (response.ok) {
+                    updateDashboard(); 
+                }
+            } catch (err) {
+                alert("Error clearing table");
+            }
+        }
+    }
+
+    // Standard function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function updateDashboard() {
+        try {
+            const response = await fetch(window.location.href);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            
+            document.getElementById('table-grid').innerHTML = doc.getElementById('table-grid').innerHTML;
+            document.getElementById('stats-container').innerHTML = doc.getElementById('stats-container').innerHTML;
+            
+            console.log("Dashboard Auto-Synced: " + new Date().toLocaleTimeString());
+        } catch (err) {
+            console.error("Sync failed:", err);
+        }
+    }
+
+    setInterval(updateDashboard, 5000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kitchen Display System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta http-equiv="refresh" content="15">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .order-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .order-card {
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 18px;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .table-number {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+        }
+
+        .placed { background: #f97316; }
+        .in_kitchen { background: #eab308; color: #333; }
+        .served { background: #22c55e; }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        li {
+            padding: 6px 0;
+            border-bottom: 1px dashed #cbd5f5;
+            font-size: 15px;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .timer {
+            font-weight: bold;
+            color: #dc2626;
+        }
+
+        .empty {
+            text-align: center;
+            font-size: 18px;
+            opacity: 0.8;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🔥 Kitchen Live Orders</h1>
+
+<div class="order-container" id="orders">
+    {% for order in orders %}
+    <div class="order-card">
+        <div class="order-header">
+            <div class="table-number">Table {{ order.table.table_number }}</div>
+            <div class="status {{ order.status }}">
+                {{ order.status|upper }}
+            </div>
+        </div>
+
+        <ul>
+            {% for item in order.items.all %}
+            <li>
+                <strong>{{ item.quantity }}×</strong> {{ item.menu_item.name }}
+            </li>
+            {% empty %}
+            <li>No items</li>
+            {% endfor %}
+        </ul>
+
+        <div class="footer">
+            <span>🕒 {{ order.created_at|timesince }} ago</span>
+            <span class="timer">PRIORITY</span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty">✅ No active orders. Kitchen is clear!</div>
+    {% endfor %}
+</div>
+
+<script>
+    const socket = new WebSocket(
+        (window.location.protocol === "https:" ? "wss://" : "ws://") +
+        window.location.host +
+        "/ws/kitchen/"
+    );
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log("Kitchen Notification:", data);
+
+        const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+        beep.play();
+
+        setTimeout(() => {
+            location.reload();
+        }, 500);
+    };
+
+    socket.onopen = () => console.log("Kitchen WebSocket connected");
+    socket.onerror = (e) => console.error("WebSocket error", e);
+</script>
+
+</body>
+</html>
