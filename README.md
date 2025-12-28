@@ -75,8 +75,3 @@ Open your browser and go to: http://127.0.0.1:8000/api/dashboard/
 
 ---
 
-## 🏁 FINAL CHECKLIST BEFORE SUBMITTING
-
-1. Ensure **db.sqlite3** is in the main folder.
-2. Ensure **requirements.txt** contains: django, djangorestframework, and reportlab.
-3. **DELETE the `venv` folder** before zipping to keep the file size small.
